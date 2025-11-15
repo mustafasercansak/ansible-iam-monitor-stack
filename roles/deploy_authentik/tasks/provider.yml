@@ -1,0 +1,65 @@
+- set_fact:
+    flow_name: "ldap-authentication-flow"
+
+- name: "Get {{ flow_name }}"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/instances/?name={{ flow_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    authorization_flow_pk: "{{ rest_result.json.results[0].pk }}"
+
+- set_fact:
+    flow_name: "Logout"
+
+- name: "Get {{ flow_name }}"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/instances/?name={{ flow_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    invalidation_flow_pk: "{{ rest_result.json.results[0].pk }}"
+
+- set_fact:
+    provider_name: "Provider for LDAP"
+
+- name: "Get {{ provider_name }} Provider"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "providers/all/?name={{ provider_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ provider_name }} Provider"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "providers/ldap/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ provider_name }}"
+      authentication_flow: null
+      authorization_flow: "{{ authorization_flow_pk }}"
+      invalidation_flow: "{{ invalidation_flow_pk }}"
+      search_mode: "cached"
+      bind_mode: "cached"
+
+- name: "Get {{ provider_name }} Provider"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "providers/all/?name={{ provider_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    provider_pk: "{{ rest_result.json.results[0].pk }}"

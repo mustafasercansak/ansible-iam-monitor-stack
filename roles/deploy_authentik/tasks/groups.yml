@@ -1,0 +1,19 @@
+- name: "Get {{ group_name }} group"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "core/groups/?name={{ group_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ group_name  }} group"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "core/groups/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ group_name }}"
+      is_superuser: false

@@ -1,0 +1,33 @@
+[[servers]]
+host = "{{ ansible_host }}"
+port = {{ ldap_port | default(389) }}
+use_ssl = {{ ldap_use_ssl | default(false) | lower }}
+
+bind_dn = "{{ grafana_bind_dn }}"
+bind_password = "{{ grafana_bind_password }}"
+
+search_base_dns = ["{{ grafana_base_dn }}"]
+search_filter = "(&(objectClass=user)(sAMAccountName=%s))"
+
+[servers.attributes]
+name = "displayName"
+surname = "sn"
+username = "sAMAccountName"
+member_of = "memberOf"
+
+[[servers.group_mappings]]
+group_dn = "{{ grafana_groups | selectattr('name', 'equalto', 'grafana-super-admins') | map(attribute='group_dn') | first }}"
+org_role = "Admin"
+grafana_admin = true
+
+[[servers.group_mappings]]
+group_dn = "{{ grafana_groups | selectattr('name', 'equalto', 'grafana-admins') | map(attribute='group_dn') | first }}"
+org_role = "Admin"
+
+[[servers.group_mappings]]
+group_dn = "{{ grafana_groups | selectattr('name', 'equalto', 'grafana-editors') | map(attribute='group_dn') | first }}"
+org_role = "Editor"
+
+[[servers.group_mappings]]
+group_dn = "{{ grafana_groups | selectattr('name', 'equalto', 'grafana-viewers') | map(attribute='group_dn') | first }}"
+org_role = "Viewer"

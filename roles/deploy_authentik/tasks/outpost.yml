@@ -1,0 +1,47 @@
+- set_fact:
+    outpost_name: "LDAP"
+
+- name: "Get {{ outpost_name }} outpost"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "outposts/instances/?name__iexact={{ outpost_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ outpost_name }} Outpost"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "outposts/instances/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ outpost_name }}"
+      type: "ldap"
+      providers: ["{{ provider_pk }}"]
+      service_connection: "{{ outpost_service_connection_docker_pk }}"
+      config:
+        authentik_host: "http://{{ ansible_host }}:9000/"
+        authentik_host_insecure: true
+        authentik_host_browser: ""
+        log_level: "info"
+        object_naming_template: "ak-outpost-%(name)s"
+        refresh_interval: "minutes=5"
+        container_image: null
+        docker_network: null
+        docker_map_ports: true
+        docker_labels: null
+        kubernetes_replicas: 1
+        kubernetes_namespace: "default"
+        kubernetes_ingress_annotations: {}
+        kubernetes_ingress_secret_name: "authentik-outpost-tls"
+        kubernetes_ingress_class_name: null
+        kubernetes_ingress_path_type: null
+        kubernetes_httproute_annotations: {}
+        kubernetes_httproute_parent_refs: []
+        kubernetes_service_type: "ClusterIP"
+        kubernetes_disabled_components: []
+        kubernetes_image_pull_secrets: []
+        kubernetes_json_patches: null

@@ -1,0 +1,35 @@
+- set_fact:
+    flow_name: "ldap-authentication-flow"
+
+- name: "Get {{ stage_name }} flow"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/instances/?name={{ flow_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create  {{ flow_name }} flow"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "flows/instances/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ flow_name }}"
+      slug: "{{ flow_name }}"
+      title: "{{ flow_name }}"
+      designation: "authentication"
+
+- name: "Get {{ stage_name }} flow"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/instances/?name={{ flow_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    flow_pk: "{{ rest_result.json.results[0].pk }}"

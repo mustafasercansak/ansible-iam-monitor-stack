@@ -1,0 +1,2 @@
+[homelab-server]
+192.168.137.11 ansible_user=sa ansible_ssh_pass=1 ansible_become_pass=1

@@ -1,0 +1,13 @@
+- name: "{{ rest_method | default('GET')  }} Authentik data"
+  uri:
+    url: "http://{{ ansible_host }}:9000/api/v3/{{rest_endpoint}}"
+    method: "{{ rest_method | default('GET') }}"
+    headers:
+      Authorization: "Bearer {{ authentik_api_token }}"
+      Content-Type: "application/json"
+    body: "{{ rest_body | default(omit) }}"
+    body_format: json
+    return_content: true
+    status_code: "{{ rest_status_code | default('GET') }}"
+    validate_certs: false
+  register: rest_result

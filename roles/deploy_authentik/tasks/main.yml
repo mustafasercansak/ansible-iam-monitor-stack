@@ -1,0 +1,108 @@
+---
+- name: Create authentik directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/authentik
+
+- name: Create authentik .env
+  copy:
+    content: |
+      PG_PASS={{ authentik_db_password }}
+      AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+      AUTHENTIK_BOOTSTRAP_TOKEN={{authentik_bootstrap_token}}
+      AUTHENTIK_BOOTSTRAP_PASSWORD={{authentik_bootstrap_password}}      
+    dest: /opt/authentik/.env
+    mode: '0755'
+  when: docker_drop_authentik
+
+- name: Download Authentik docker-compose file
+  ansible.builtin.get_url:
+    url: https://goauthentik.io/docker-compose.yml
+    dest: /opt/authentik/docker-compose.yml
+    mode: '0755'
+  when: docker_drop_authentik
+
+- name: STOP and REMOVE authentik stack and its volumes
+  docker_compose:
+    project_src: /opt/authentik
+    state: absent    
+    remove_volumes: "{{docker_drop_authentik}}"
+  when: docker_drop_authentik
+
+- name: Manage authentik stack
+  docker_compose:
+    project_src: /opt/authentik
+    state: present
+  when: docker_drop_authentik
+
+- name: Wait until all Authentik containers are healthy
+  shell: |
+    running=$(docker ps --filter "name=authentik_" --filter "health=healthy" --format '{{"{{.Names}}"}}' | wc -l)
+    total=$(docker ps --filter "name=authentik_" --format '{{"{{.Names}}"}}' | wc -l)
+    if [ "$running" -eq "$total" ]; then
+      exit 0
+    else
+      exit 1
+    fi
+  register: wait_healthy
+  retries: 30
+  delay: 10
+  until: wait_healthy.rc == 0
+  changed_when: false
+
+- name: Include tasks from env.yml 
+  include_tasks:
+    file: env.yml
+
+- name: "Stage Tasks"
+  include_tasks:
+    file: stages.yml
+
+- name: "Flow Tasks"
+  include_tasks:
+    file: flows.yml
+
+- name: "Stage Binding Tasks"
+  include_tasks:
+    file: stage_bindings.yml
+
+- name: "Provider Tasks"
+  include_tasks:
+    file: provider.yml
+
+- name: "Application Tasks"
+  include_tasks:
+    file: application.yml
+
+- name: "Outpost Connection Tasks"
+  include_tasks:
+    file: outpost_connection.yml
+
+- name: "Outpost Tasks"
+  include_tasks:
+    file: outpost.yml
+
+- name: "Directory Groups Tasks"
+  include_tasks:
+    file: groups.yml
+  loop: "{{ authentik_groups }}"
+  loop_control:
+    loop_var: current_group
+    label: "Processing group: {{ current_group.name | title }}"
+  vars:
+    group_name: "{{ current_group.name | title }}"
+
+- name: "Directory Users Tasks"
+  include_tasks:
+    file: users.yml
+  loop: "{{ authentik_users }}"
+  loop_control:
+    loop_var: current_user
+    label: "Processing user: {{ current_user.name | title }}"
+  vars:
+    user_username: "{{ current_user.username }}"
+    user_password: "{{ current_user.password }}"
+    user_name: "{{ current_user.name }}"

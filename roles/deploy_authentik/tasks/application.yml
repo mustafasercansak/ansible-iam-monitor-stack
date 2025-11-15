@@ -1,0 +1,23 @@
+- set_fact:
+    application_name: "LDAP"
+
+- name: "Get {{ application_name }} Application"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "core/applications/?name={{ application_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ application_name }} Application"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "core/applications/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ application_name }}"
+      slug: "{{ application_name | lower }}"
+      provider: "{{ provider_pk }}"

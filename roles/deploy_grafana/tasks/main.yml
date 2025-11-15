@@ -1,0 +1,112 @@
+---
+- set_fact:
+    process_directory: "/opt/grafana"
+
+- name: Create file directories
+  file:
+    path: "{{ process_directory }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "conf"
+    - "data"
+    - "provisioning"
+    - "provisioning/datasources"
+
+- name: Read .env file content
+  ansible.builtin.slurp:
+    src: /opt/influxdb/.env
+  register: env_file_content
+
+- name: Decode .env content
+  ansible.builtin.set_fact:
+    decoded_env_content: "{{ env_file_content.content | b64decode }}"
+
+- name: Convert .env into key/value dict manually
+  ansible.builtin.set_fact:
+    env_vars: >-
+      {{
+        dict(
+          decoded_env_content.splitlines()
+          | select("match", "^[A-Za-z0-9_]+=.*")
+          | map("split", "=", 1)
+        )
+      }}
+
+- name: Extract DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+  ansible.builtin.set_fact:
+    influxdb_api_token: "{{ env_vars.DOCKER_INFLUXDB_INIT_ADMIN_TOKEN }}"
+
+- name: Extract DOCKER_INFLUXDB_INIT_USERNAME
+  ansible.builtin.set_fact:
+    influxdb_username: "{{ env_vars.DOCKER_INFLUXDB_INIT_USERNAME }}"
+
+- name: Extract DOCKER_INFLUXDB_INIT_PASSWORD
+  ansible.builtin.set_fact:
+    influxdb_password: "{{ env_vars.DOCKER_INFLUXDB_INIT_PASSWORD }}"
+
+- name: Extract DOCKER_INFLUXDB_INIT_ORG
+  ansible.builtin.set_fact:
+    influxdb_org: "{{ env_vars.DOCKER_INFLUXDB_INIT_ORG }}"
+
+- name: Extract DOCKER_INFLUXDB_INIT_BUCKET
+  ansible.builtin.set_fact:
+    influxdb_bucket: "{{ env_vars.DOCKER_INFLUXDB_INIT_BUCKET }}"
+
+- name: Create InfluxDB Datasource provisioning file
+  ansible.builtin.template:
+    src: influxdb-datasource.yml.j2
+    dest: "{{ process_directory }}/provisioning/datasources/influxdb.yml"
+    owner: "472" 
+    group: "472"
+    mode: '0644'
+  vars:
+    influxdb_token: "{{ influxdb_api_token }}"
+    influxdb_host: "{{ ansible_host }}"
+
+- name: Ensure Grafana data directory has correct ownership and permissions
+  file:
+    path: "{{ process_directory }}/data"
+    owner: "472"
+    group: "472"
+    mode: '0755'
+
+- name: Create LDAP configuration file (ldap.toml)
+  ansible.builtin.template:
+    src: ldap.toml.j2
+    dest: "{{ process_directory }}/provisioning/ldap.toml"
+    owner: "472"
+    group: "472"
+    mode: '0644'
+
+- name: Create Grafana Configuration file for LDAP (grafana.ini)
+  ansible.builtin.copy:
+    content: |
+      [log]
+      level = debug
+      [auth.ldap]
+      enabled = true
+      allow_sign_up = true
+      config_file = /etc/grafana/ldap.toml
+    dest: "{{ process_directory }}/conf/grafana.ini"
+    owner: "472"
+    group: "472"
+    mode: '0644'
+
+- name: Create grafana docker-compose file
+  template:
+    src: docker-compose.grafana.yml.j2
+    dest: "{{ process_directory }}/docker-compose.yml"
+    mode: '0755'
+
+- name: STOP and REMOVE grafana stack and its volumes
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: absent    
+    remove_volumes: "{{docker_drop_grafana}}"
+  when: docker_drop_grafana
+
+- name: Manage grafana stack
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: present

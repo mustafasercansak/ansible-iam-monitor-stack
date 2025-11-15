@@ -1,0 +1,69 @@
+- set_fact:
+    stage_name: "ldap-identification-stage"
+
+- name: "Get {{ stage_name }} stage"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    stage_pk: "{{ rest_result.json.results[0].pk }}"
+
+- name: "Get {{ stage_name }} stage bindings"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/bindings/?stage={{ stage_pk }}&target={{ flow_pk }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create  bindings {{ stage_name }} to {{ flow_name }} flow"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "flows/bindings/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      target: "{{ flow_pk }}"
+      stage: "{{ stage_pk }}"
+      order: 10
+
+- set_fact:
+    stage_name: "ldap-authentication-login"
+
+- name: "Get {{ stage_name }} flow"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    stage_pk: "{{ rest_result.json.results[0].pk }}"
+
+- name: "Get {{ stage_name }} stage bindings"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "flows/bindings/?stage={{ stage_pk }}&target={{ flow_pk }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create  bindings {{ stage_name }} to {{ flow_name }} flow"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "flows/bindings/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      target: "{{ flow_pk }}"
+      stage: "{{ stage_pk }}"
+      order: 30

@@ -1,0 +1,87 @@
+# authentication
+- set_fact:
+    stage_name: "ldap-authentication-password"
+
+- name: "Get {{ stage_name }} stage"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ stage_name  }} stage"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "stages/password/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ stage_name }}"
+      backends: [
+        "authentik.core.auth.InbuiltBackend",
+        "authentik.core.auth.TokenBackend",
+        "authentik.sources.ldap.auth.LDAPBackend",
+        "authentik.sources.kerberos.auth.KerberosBackend"
+      ]
+
+- name: "Get {{ stage_name }} stage"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    password_statge_pk: "{{ rest_result.json.results[0].pk }}"
+
+# identification
+- set_fact:
+    stage_name: "ldap-identification-stage"
+
+- name: "Get {{ stage_name }} stage"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ stage_name }} stage"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "stages/identification/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ stage_name }}"
+      user_fields: [ "email", "username" ]
+      password_stage: "{{ password_statge_pk }}"
+
+# authentication
+- set_fact:
+    stage_name: "ldap-authentication-login"
+
+- name: "Get {{ stage_name }} state"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "stages/all/?name={{ stage_name }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create  {{ stage_name }}"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "stages/user_login/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ stage_name }}"

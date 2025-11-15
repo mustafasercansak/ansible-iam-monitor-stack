@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  influxdb:
+    image: influxdb:2.7
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - influxdb_net
+    env_file:
+      - {{ process_directory }}/.env
+
+volumes:
+  influxdb_data:
+  influxdb_config:
+
+networks:
+  influxdb_net:
+    driver: bridge

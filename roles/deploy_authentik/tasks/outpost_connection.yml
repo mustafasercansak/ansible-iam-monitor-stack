@@ -1,0 +1,44 @@
+- set_fact:
+    outpost_name: "LDAP"
+    
+- name: "Get {{ outpost_name }} outpost"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "outposts/instances/?name__iexact={{ outpost_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    outpost_service_connection_docker_name: "Local Docker connection"
+
+- name: "Get {{ outpost_service_connection_docker_name }} Connection"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "outposts/service_connections/all/?name={{ outpost_service_connection_docker_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ outpost_service_connection_docker_name }} Connection"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "outposts/service_connections/docker/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      name: "{{ outpost_service_connection_docker_name }}"
+      local: false
+
+- name: "Get {{ outpost_service_connection_docker_name }} Connection"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "outposts/service_connections/all/?name={{ outpost_service_connection_docker_name | urlencode }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- set_fact:
+    outpost_service_connection_docker_pk: "{{ rest_result.json.results[0].pk }}"

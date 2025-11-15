@@ -1,0 +1,9 @@
+---
+- name: Deploy Homelab Services
+  hosts: homelab-server
+  become: yes
+  roles:
+    #- docker_setup
+    #- deploy_authentik
+    # - deploy_influxdb
+    - deploy_grafana

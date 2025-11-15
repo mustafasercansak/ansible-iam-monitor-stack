@@ -1,0 +1,46 @@
+- name: "Get {{ user_username }} user"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "core/users/?username={{ user_username }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Create {{ user_username  }} user"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "core/users/"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      username: "{{ user_username }}"
+      name: "{{ user_name }}"
+      is_active: true
+      type: "internal"
+
+- name: "Get {{ user_username }} user"
+  include_tasks:
+    file: rest.yml
+  vars:
+    rest_endpoint: "core/users/?username={{ user_username }}"
+    rest_method: "GET"
+    rest_status_code: 200
+
+- name: "Set password {{ user_username  }} user"
+  include_tasks:
+    file: rest.yml
+  when: rest_result.json.results | length == 0
+  vars:
+    rest_endpoint: "core/users/{{ rest_result.json.results[0].pk }}/set_password"
+    rest_method: "POST"
+    rest_status_code: 201
+    rest_body:
+      set_password: "{{ user_password }}"
+
+- debug:
+    msg: |
+      "username: {{ user_username }}"
+      "password: {{ user_password }}"
+      "name: {{ user_name }}"

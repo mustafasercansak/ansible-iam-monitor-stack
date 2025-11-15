@@ -1,0 +1,41 @@
+- set_fact:
+    process_directory: "/opt/influxdb"
+
+- name: Create file directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: ["{{ process_directory }}"]
+
+- name: Create influxdb .env
+  copy:
+    content: |
+      DOCKER_INFLUXDB_INIT_MODE=setup
+      DOCKER_INFLUXDB_INIT_USERNAME={{ influxdb_admin_user }}
+      DOCKER_INFLUXDB_INIT_PASSWORD={{influxdb_admin_password }}
+      DOCKER_INFLUXDB_INIT_ORG={{influxdb_org }}
+      DOCKER_INFLUXDB_INIT_BUCKET={{influxdb_bucket }}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_admin_token }}
+    dest: "{{ process_directory }}/.env"
+    mode: '0755'
+  when: docker_drop_influxdb
+
+- name: Create influxdb docker-compose file
+  template:
+    src: docker-compose.influxdb.yml.j2
+    dest: "{{ process_directory }}/docker-compose.yml"
+    mode: '0755'
+
+- name: STOP and REMOVE influxdb stack and its volumes
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: absent    
+    remove_volumes: "{{docker_drop_influxdb}}"
+  when: docker_drop_influxdb
+
+- name: Manage influxdb stack
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: present
+  when: docker_drop_influxdb
