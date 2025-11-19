@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  agent:
+    image: portainer/agent:latest
+    container_name: portainer_agent
+    restart: always
+    environment:
+      AGENT_CLUSTER_ADDR: "192.168.137.12:9001"
+    ports:
+      - "9001:9001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - /opt:/opt
+    networks:
+      - agent_network
+
+networks:
+  agent_network:
+    driver: bridge

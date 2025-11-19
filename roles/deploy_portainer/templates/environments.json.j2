@@ -1,0 +1,11 @@
+[
+  {% for host in groups['homelab-clients'] %}
+  {
+    "Name": "{{ hostvars[host].inventory_hostname }}",
+    "Type": 2,
+    "URL": "{{ hostvars[host].ansible_host | default(hostvars[host].inventory_hostname) }}:9001",
+    "TLS": false,
+    "AgentSecret": "{{ AGENT_SECRET }}"
+  }{{ "," if not loop.last else "" }}
+  {% endfor %}
+]

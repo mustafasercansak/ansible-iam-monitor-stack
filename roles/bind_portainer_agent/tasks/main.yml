@@ -1,0 +1,30 @@
+- name: Login to Portainer and get JWT
+  uri:
+    url: "http://{{ ansible_host }}:{{ docker.portainer.http }}/api/auth"
+    method: POST
+    validate_certs: no
+    body_format: json
+    body:
+      username: "admin"
+      password: "{{ docker.portainer.password }}"
+    return_content: yes
+  register: portainer_login
+  run_once: true
+
+- name: Register clients dynamically (Form-URL Encoded Simulation)
+  uri:
+    url: "http://{{ ansible_host }}:{{ docker.portainer.http }}/api/endpoints"
+    method: POST
+    validate_certs: no
+    headers:
+      Authorization: "Bearer {{ portainer_login.json.jwt }}"
+    body_format: form-urlencoded 
+    body:
+      Name: "{{ item }}"
+      EndpointCreationType: 2 
+      URL: "tcp://{{ hostvars[item].ansible_host }}:9001"
+      GroupID: 1
+      TLS: "true"
+      TLSSkipVerify: "true"
+      TLSSkipClientVerify: "true"
+  loop: "{{ groups['homelab-clients'] }}"

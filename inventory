@@ -1,2 +1,6 @@
-[homelab-server]
+[homelab-servers]
 192.168.137.11 ansible_user=sa ansible_ssh_pass=1 ansible_become_pass=1
+[homelab-clients]
+svr02 ansible_host=192.168.137.12 ansible_user=sa ansible_ssh_pass=2 ansible_become_pass=2
+svr03 ansible_host=192.168.137.13 ansible_user=sa ansible_ssh_pass=3 ansible_become_pass=3
+svr04 ansible_host=192.168.137.14 ansible_user=sa ansible_ssh_pass=4 ansible_become_pass=4

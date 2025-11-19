@@ -1,0 +1,35 @@
+---
+- set_fact:
+    process_directory: "/opt/portainer_agent"
+
+- name: Ensure agent directory exists on client
+  file:
+    path: "{{ process_directory }}"
+    state: directory
+    mode: '0755'
+
+
+- name: Retrieve AGENT_SECRET from Server Host
+  ansible.builtin.set_fact:
+    agent_secret_ref: "{{ hostvars[groups['homelab-servers'][0]]['AGENT_SECRET'] }}"
+    
+- debug:
+    msg: "agent_secret_ref: {{ agent_secret_ref }}"
+
+- name: Create Agent docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ process_directory }}/docker-compose.yml"
+    mode: '0755'
+
+- name: STOP and REMOVE
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: absent    
+    remove_volumes: true
+
+- name: Start Portainer Agent Stack
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: present
+    pull: yes

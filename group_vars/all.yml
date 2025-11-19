@@ -1,8 +1,9 @@
 docker_drop_authentik: false
 docker_drop_influxdb: false
-docker_drop_grafana: true
+docker_drop_grafana: false
+docker_drop_portainer: false
 
-authentik_bootstrap_password: "changeme"
+authentik_bootstrap_password: "superpassword"
 authentik_db_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=36, chars='ascii_letters,digits') }}"
 authentik_secret_key: "{{ lookup('ansible.builtin.password', '/dev/null', length=60, chars='ascii_letters,digits,punctuation') }}"
 authentik_bootstrap_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=60, chars='ascii_letters,digits') }}"
@@ -11,17 +12,17 @@ authentik_groups: "{{ grafana_groups }}"
 authentik_users: "{{ authentik_ldap_user }}"
 authentik_ldap_user: 
   - username: ldapservice
-    password: changeme
+    password: superpassword
     name: LDAP Service
 
 influxdb_admin_user: admin
-influxdb_admin_password: changeme
+influxdb_admin_password: superpassword
 influxdb_org: org
 influxdb_bucket: bucket
 influxdb_admin_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars='ascii_letters,digits') }}"
 
 grafana_admin_user: admin
-grafana_admin_password: changeme
+grafana_admin_password: superpassword
 grafana_bind_dn: "cn={{authentik_ldap_user[0].username}},ou=users,DC=ldap,DC=goauthentik,DC=io"
 grafana_bind_password: "{{authentik_ldap_user[0].password}}"
 grafana_base_dn: "DC=ldap,DC=goauthentik,DC=io"
@@ -40,3 +41,10 @@ grafana_groups:
   - name: grafana-viewers
     org_role: Viewer
     group_dn: "cn=grafana-viewers,ou=groups,dc=ldap,dc=goauthentik,dc=io"
+
+docker:
+  portainer:
+    password: superpassword
+    http: 9090
+    https: 9444
+    edge: 8000

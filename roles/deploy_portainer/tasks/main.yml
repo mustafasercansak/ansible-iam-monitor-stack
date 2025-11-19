@@ -1,0 +1,70 @@
+---
+- set_fact:
+    process_directory: "/opt/portainer"
+
+- name: Remove old directories
+  file:
+    path: "{{ process_directory }}"
+    state: absent
+  when: docker_drop_portainer
+  
+- name: Create file directories
+  file:
+    path: "{{ process_directory }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "conf"
+    - "data"
+    - "provisioning"
+    - "provisioning/datasources"
+
+- set_fact: 
+    portainer_hashed_password: "{{ docker.portainer.password | password_hash(hashtype='bcrypt', rounds=12) | regex_replace('(\\$)','$$') }}"
+    portainer_agent_secret: "{{ lookup('password', 'credentials/portainer_agent_secret', length=32, chars='ascii_letters,digits') }}"
+
+- name: Create .env
+  copy:
+    content: |
+      ADMIN_PASSWORD={{ docker.portainer.password }}
+      ADMIN_PASSWORD_HASHED={{ portainer_hashed_password }}
+      AGENT_SECRET={{ portainer_agent_secret }}
+    dest: "{{ process_directory }}/.env"
+    mode: '0755'
+  when: docker_drop_portainer
+
+- name: Include tasks from env.yml 
+  include_tasks:
+    file: env.yml
+  vars:
+    token_name: AGENT_SECRET
+
+- debug:
+    msg: "AGENT_SECRET:{{ AGENT_SECRET }}"
+
+- name: Create docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ process_directory }}/docker-compose.yml"
+    mode: '0755'
+
+- name: Render environments.json for agent auto-provisioning
+  template:
+    src: environments.json.j2
+    dest: "{{ process_directory }}/provisioning/environments.json"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: STOP and REMOVE
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: absent    
+    remove_volumes: "{{docker_drop_portainer}}"
+  when: docker_drop_portainer
+
+- name: Manage stack
+  docker_compose:
+    project_src: "{{ process_directory }}"
+    state: present
+  when: docker_drop_portainer

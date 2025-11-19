@@ -1,9 +1,24 @@
 ---
-- name: Deploy Homelab Services
-  hosts: homelab-server
+- name: Deploy Homelab Servers
+  hosts: none #homelab-servers
   become: yes
   roles:
     #- docker_setup
     #- deploy_authentik
-    # - deploy_influxdb
-    - deploy_grafana
+    #- deploy_influxdb
+    #- deploy_grafana
+    - deploy_portainer
+
+- name: Deploy Homelab Clients
+  hosts: none #homelab-clients
+  become: yes
+  roles:
+    - docker_setup
+    - deploy_portainer_agent
+
+- name: Bind Portainer agents
+  hosts: homelab-servers
+  become: yes
+  roles:
+    - bind_portainer_agent
+
